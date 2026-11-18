@@ -1,0 +1,1251 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#17324d">
+<meta name="description" content="依 110 年版 B14-4 建築物施工日誌格式之手機離線填報工具，日誌存於個人 Google 雲端硬碟。">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="施工日誌">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>B14-4 建築物施工日誌（個人版）</title>
+<style>
+:root{--navy:#17324d;--navy2:#24496d;--bg:#eef2f5;--card:#fff;--line:#cfd8e0;--muted:#5d6b78;--ok:#1f7a4d;--warn:#b26a00;--err:#b3261e;--accent:#f2b134;--r:10px}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:#1c2733;font:16px/1.5 system-ui,-apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+header{position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;padding:calc(8px + env(safe-area-inset-top)) 14px 0}
+.hrow{display:flex;align-items:center;gap:8px}
+#tabs{display:flex;gap:0;overflow-x:auto;scrollbar-width:none;margin:8px -14px 0;padding:0 6px;-webkit-overflow-scrolling:touch}
+#tabs::-webkit-scrollbar{display:none}
+#tabs button{flex:1 1 auto;background:transparent;color:#c9d6e2;border-radius:8px 8px 0 0;padding:8px 4px;font-size:13.5px;position:relative;white-space:nowrap}
+#tabs button[aria-selected=true]{background:var(--bg);color:var(--navy);font-weight:700}
+#tabs .dot{position:absolute;top:5px;right:3px;width:7px;height:7px;border-radius:50%;background:var(--accent)}
+#curBar{background:var(--bg);margin:0 -14px;padding:6px 14px;font-size:13px;color:var(--navy);border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#curBar .unsaved{color:var(--warn)}
+.page{display:none}.page.active{display:block;animation:pgIn .15s ease-out}
+@keyframes pgIn{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}
+.pager{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:12px 0}
+.pager button{min-width:110px}.pager span{font-size:13px;color:var(--muted);text-align:center}
+.pager.hide{display:none}
+#checkList a{color:var(--navy2);cursor:pointer;text-decoration:underline}
+#checkList li{margin:3px 0}
+header h1{font-size:17px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header small{display:block;font-size:11px;opacity:.75;letter-spacing:.05em}
+.pill{font-size:12px;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.15);white-space:nowrap}
+.pill.ok{background:#2e8b57}.pill.off{background:#8a4b00}
+main{max-width:860px;margin:0 auto;padding:10px}
+.panel{background:var(--card);border-radius:var(--r);padding:12px 14px;margin:10px 0;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.panel>h2,details.panel>summary{font-size:16px;margin:0 0 8px;color:var(--navy)}
+details.panel>summary{cursor:pointer;font-weight:700;margin:0;list-style:none}
+details.panel>summary::-webkit-details-marker{display:none}
+details.panel>summary::before{content:"▸ ";color:var(--muted)}
+details.panel[open]>summary::before{content:"▾ "}
+details.panel[open]>summary{margin-bottom:8px}
+h3{font-size:14px;margin:12px 0 6px;color:var(--navy2)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px}
+.grid .full{grid-column:1/-1}
+@media (min-width:640px){.grid.g3{grid-template-columns:1fr 1fr 1fr}}
+label{display:block;font-size:13px;color:var(--muted)}
+label>input,label>select,label>textarea{margin-top:3px}
+input,select,textarea{width:100%;font:inherit;font-size:16px;padding:8px 9px;border:1px solid var(--line);border-radius:8px;background:#fff;color:inherit}
+input[readonly]{background:#f3f5f7;color:var(--muted)}
+textarea{min-height:84px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:2px solid #7aa7d6;border-color:#7aa7d6}
+button{font:inherit;font-size:15px;border:0;border-radius:8px;padding:9px 13px;background:var(--navy);color:#fff;cursor:pointer}
+button.secondary{background:#e3e9ef;color:var(--navy)}
+button.danger{background:#fbe9e7;color:var(--err)}
+button.small{font-size:13px;padding:6px 10px}
+button:disabled{opacity:.5}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px}
+.hint{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+.status{font-size:14px;padding:8px 12px;border-radius:8px;background:#e8f0f7;color:var(--navy);margin:10px 0}
+.status.warn{background:#fff4e0;color:#7a4b00}.status.err{background:#fdecea;color:var(--err)}.status.ok{background:#e6f4ec;color:var(--ok)}
+.inline{display:inline-flex;align-items:center;gap:6px;margin-right:18px;font-size:15px;color:inherit}
+.inline input{width:auto;margin:0}
+.rowcard{border:1px solid var(--line);border-radius:8px;padding:8px;margin:8px 0;display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;background:#fafcfd}
+.rowcard .wide{grid-column:1/-1}
+.rowcard label{font-size:12px}
+.rowcard input,.rowcard select{padding:6px 8px}
+.rowcard .rowfoot{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center}
+.rowcard .calc{font-size:11.5px;color:var(--muted)}
+.entries{display:flex;flex-direction:column;gap:6px;max-height:320px;overflow:auto}
+.entry{display:flex;gap:6px;align-items:stretch}
+.entry button{flex:1;text-align:left;background:#f1f4f7;color:#1c2733;font-size:14px}
+.entry.current button{outline:2px solid var(--navy2)}
+.tag{display:inline-block;font-size:11px;padding:1px 6px;border-radius:4px;margin-left:4px;vertical-align:1px}
+.tag.synced{background:#e6f4ec;color:var(--ok)}.tag.pending{background:#fff4e0;color:var(--warn)}.tag.conflict{background:#fdecea;color:var(--err)}
+.att{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:6px;margin:6px 0;background:#fafcfd}
+.att img,.att .ph{width:52px;height:52px;object-fit:cover;border-radius:6px;background:#dde4ea;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);flex:none}
+.att .meta{flex:1;font-size:13px;word-break:break-all}
+.conflict{border:2px solid var(--err)}
+.actions{position:fixed;left:0;right:0;bottom:0;z-index:30;background:#fff;border-top:1px solid var(--line);padding:8px 10px calc(8px + env(safe-area-inset-bottom));display:flex;gap:8px;justify-content:center}
+.actions button{flex:1;max-width:220px}
+#banner{display:none;position:fixed;left:10px;right:10px;bottom:calc(70px + env(safe-area-inset-bottom));z-index:40;background:var(--navy2);color:#fff;padding:10px 12px;border-radius:10px;align-items:center;gap:8px}
+#banner.show{display:flex}#banner span{flex:1;font-size:14px}
+#overlay{display:none;position:fixed;inset:0;z-index:60;background:rgba(15,30,45,.55);align-items:center;justify-content:center;color:#fff;font-size:16px;text-align:center;padding:20px}
+#overlay.show{display:flex}
+.kv{font-size:13px;color:var(--muted)}
+footer{text-align:center;font-size:12px;color:var(--muted);padding:12px}
+/* ---- 預覽／列印 ---- */
+#previewBar{display:none}
+#printArea{display:none}
+body.previewing #previewBar{display:flex;position:fixed;top:0;left:0;right:0;z-index:70;background:var(--navy);color:#fff;padding:8px 10px;padding-top:calc(8px + env(safe-area-inset-top));gap:8px;align-items:center;flex-wrap:wrap}
+body.previewing #previewBar .w{flex:1 1 100%;font-size:12.5px;background:#fff4e0;color:#7a4b00;border-radius:6px;padding:6px 8px;max-height:110px;overflow:auto}
+body.previewing #printArea{display:block;position:fixed;inset:0;z-index:65;overflow:auto;background:#7d8a96;padding:var(--pbh,120px) 8px 30px}
+body.previewing #printArea .sheet{background:#fff;margin:0 auto 14px;width:210mm;max-width:100%;padding:12mm;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.sheet{font-family:"Noto Serif TC","PMingLiU","MingLiU","Songti TC",serif;color:#000;font-size:10.5pt;line-height:1.35}
+.sheet .ttl{display:flex;justify-content:center;position:relative;margin-bottom:4px}
+.sheet .ttl b{font-size:16pt;letter-spacing:.1em;font-weight:600}
+.sheet .ttl span{position:absolute;right:0;bottom:2px;font-weight:700;font-size:12pt}
+.sheet .hd{font-size:10pt;margin:1px 0}
+.sheet table{width:100%;border-collapse:collapse;table-layout:fixed}
+.sheet td,.sheet th{border:1px solid #000;padding:2px 4px;font-weight:400;vertical-align:middle;word-break:break-all;height:7mm}
+.sheet th{text-align:center}
+.sheet .sec td{border-top:0}
+.sheet .stitle{font-size:10pt;text-align:left}
+.sheet .box{border:1px solid #000;border-top:0;padding:3px 5px;white-space:pre-wrap;min-height:14mm}
+.sheet .box.tall{min-height:20mm}
+.sheet .notes{font-size:8.5pt;margin-top:4px;line-height:1.4}
+.sheet .notes p{margin:0 0 1px 2.2em;text-indent:-2.2em}
+.sheet .c{text-align:center}.sheet .r{text-align:right}
+.sheet .sig{height:12mm;vertical-align:top}
+@media print{
+  @page{size:A4 portrait;margin:10mm 11mm}
+  body{background:#fff;padding:0}
+  body>*:not(#printArea){display:none!important}
+  #printArea{display:block!important;position:static!important;padding:0!important;background:#fff!important;overflow:visible!important}
+  #printArea .sheet{width:auto!important;padding:0!important;margin:0!important;box-shadow:none!important;page-break-after:always;break-after:page}
+  #printArea .sheet:last-child{page-break-after:auto;break-after:auto}
+  .sheet tr,.sheet .box{page-break-inside:avoid;break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <div style="flex:1;min-width:0"><small>B14-4 個人版 · V2.2.1</small><h1>建築物施工日誌</h1></div>
+    <span id="net" class="pill">檢查網路…</span>
+    <span id="drivePill" class="pill">雲端：未授權</span>
+  </div>
+  <nav id="tabs" role="tablist" aria-label="填報分頁">
+    <button type="button" role="tab" data-tab="list">清單資料</button>
+    <button type="button" role="tab" data-tab="work">施工材料</button>
+    <button type="button" role="tab" data-tab="labor">人員機具</button>
+    <button type="button" role="tab" data-tab="safety">職安其他</button>
+    <button type="button" role="tab" data-tab="sign">附件簽章</button>
+    <button type="button" role="tab" data-tab="settings">設定</button>
+  </nav>
+  <div id="curBar"></div>
+</header>
+
+<main>
+  <div id="status" class="status">載入中…</div>
+  <div id="conflictBox" class="status err" style="display:none">
+    <div>此筆日誌與雲端版本衝突（雲端在其他裝置被修改過）。請先決定保留哪一版，系統不會自動覆寫。</div>
+    <div class="toolbar" style="margin-top:8px">
+      <button id="forceUpBtn" class="small danger">以本機版本覆寫雲端</button>
+      <button id="takeCloudBtn" class="small secondary">改用雲端版本</button>
+    </div>
+  </div>
+
+  <!-- ===== 清單 ===== -->
+  <div class="page" data-page="list" data-sec="list" role="tabpanel">
+    <section class="panel">
+      <div class="toolbar">
+        <button id="newBtn">＋ 新增日誌</button>
+        <button id="syncBtn" class="secondary">☁ 同步至雲端</button>
+        <button id="cloudListBtn" class="secondary">讀取雲端日誌</button>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>本機日誌清單 <span id="listCount" class="kv"></span></h2>
+      <div class="grid" style="margin-bottom:8px">
+        <label>工程篩選<select id="projFilter"><option value="">全部工程</option></select></label>
+        <label>關鍵字<input id="kwFilter" placeholder="日期、表報編號…"></label>
+      </div>
+      <div id="entries" class="entries"></div>
+    </section>
+    <details class="panel" id="cloudPanel">
+      <summary>雲端日誌（Google 雲端硬碟）</summary>
+      <div id="cloudEntries" class="entries"><span class="hint">尚未讀取雲端清單。</span></div>
+      <p class="hint">選取項目即下載還原至本機。本機有未同步修改時會先詢問。</p>
+    </details>
+  </div>
+
+  <form id="diary" autocomplete="off" onsubmit="return false">
+    <!-- ===== 表頭／工程基本資料 ===== -->
+    <div class="page" data-page="list" data-sec="basic" role="tabpanel">
+      <section class="panel">
+        <h2>表頭</h2>
+        <div class="grid">
+          <label>填表日期<input name="date" id="date" type="date" required></label>
+          <label>星期<input id="weekday" readonly></label>
+          <label>表報編號<input name="reportNo"></label>
+          <span></span>
+          <label>本日天氣：上午<input name="weather_am" list="wx"></label>
+          <label>本日天氣：下午<input name="weather_pm" list="wx"></label>
+        </div>
+        <datalist id="wx"><option>晴</option><option>多雲</option><option>陰</option><option>陣雨</option><option>雨</option><option>大雨</option><option>颱風</option></datalist>
+      </section>
+      <section class="panel">
+        <h2>工程基本資料</h2>
+        <div class="grid">
+          <label class="full">工程名稱<input name="project" id="project" placeholder="例如：○○集合住宅新建工程"></label>
+          <label class="full">承造人<input name="contractor"></label>
+          <label class="full">建（雜）照號碼<input name="photo_no" placeholder="例如：（113）○○建字第 01234 號"></label>
+          <label>開工日期<input name="start_date" type="date"></label>
+          <label>核定竣工日期<input name="completion_date" type="date"></label>
+          <label>預定進度（%）<input name="planned_progress" inputmode="decimal"></label>
+          <label>實際進度（%）<input name="actual_progress" inputmode="decimal"></label>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===== 一 ===== -->
+    <div class="page" data-page="work" data-sec="work" role="tabpanel">
+      <section class="panel">
+        <h2>一、依施工計畫書執行按圖施工概況</h2>
+        <p class="hint">含約定之重要施工項目及完成數量等。填「前日累計」與「本日」後，累計自動計算，仍可手動修正。</p>
+        <button type="button" class="secondary small carryBtn">帶入前一日項目與累計</button>
+        <div id="workRows"></div>
+        <button type="button" class="secondary small" data-add="workRows">＋ 新增施工項目</button>
+      </section>
+      <section class="panel">
+        <h2>營造業專業工程特定施工項目</h2>
+        <div id="specialRows"></div>
+        <button type="button" class="secondary small" data-add="specialRows">＋ 新增特定施工項目</button>
+      </section>
+    </div>
+
+    <!-- ===== 二 ===== -->
+    <div class="page" data-page="work" data-sec="material" role="tabpanel">
+      <section class="panel">
+        <h2>二、工地材料管理概況</h2>
+        <p class="hint">含約定之重要材料使用狀況及數量等。</p>
+        <button type="button" class="secondary small carryBtn">帶入前一日項目與累計</button>
+        <div id="materialRows"></div>
+        <button type="button" class="secondary small" data-add="materialRows">＋ 新增材料</button>
+      </section>
+    </div>
+
+    <!-- ===== 三 ===== -->
+    <div class="page" data-page="labor" data-sec="labor" role="tabpanel">
+      <section class="panel">
+        <h2>三、工地人員及機具管理</h2>
+        <p class="hint">含約定之出工人數及機具使用情形及數量。</p>
+        <button type="button" class="secondary small carryBtn">帶入前一日項目與累計</button>
+        <h3>人員</h3>
+        <div id="laborRows"></div>
+        <button type="button" class="secondary small" data-add="laborRows">＋ 新增工別</button>
+        <h3>機具</h3>
+        <div id="equipmentRows"></div>
+        <button type="button" class="secondary small" data-add="equipmentRows">＋ 新增機具</button>
+      </section>
+    </div>
+
+    <!-- ===== 四 ===== -->
+    <div class="page" data-page="labor" data-sec="tech" role="tabpanel">
+      <section class="panel">
+        <h2>四、技術士設置</h2>
+        <p class="hint">本日施工項目是否有須依「營造業專業工程特定施工項目應置之技術士種類、比率或人數標準表」規定應設置技術士之專業工程？</p>
+        <label class="inline"><input type="radio" name="technician_required" value="有">有</label>
+        <label class="inline"><input type="radio" name="technician_required" value="無" checked>無</label>
+        <p class="hint" id="techNone">勾選「無」時不需填寫技術士簽章表，列印時亦不輸出。</p>
+        <div id="techBox" style="display:none">
+          <h3>建築物施工日誌之技術士簽章表</h3>
+          <div class="grid">
+            <label class="full">專業工程項目<input name="tech_project"></label>
+            <label>應置技術士人數<input name="tech_required_count" inputmode="numeric"></label>
+          </div>
+          <div id="techRows"></div>
+          <button type="button" class="secondary small" data-add="techRows">＋ 新增技術士</button>
+          <p class="hint">「技術士簽名或蓋章」欄於列印後由技術士本人親自簽名或蓋章。</p>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===== 五 ===== -->
+    <div class="page" data-page="safety" data-sec="safety" role="tabpanel">
+      <section class="panel">
+        <h2>五、工地職業安全衛生事項之督導、公共環境與安全之維護及其他工地行政事務</h2>
+        <h3>（一）施工前檢查事項</h3>
+        <div class="grid">
+          <label class="full">1. 實施勤前教育（含工地預防災變及危害告知）<select name="safety_education"><option>未填</option><option>有</option><option>無</option></select></label>
+          <label class="full">2. 確認新進勞工是否提報勞工保險（或其他商業保險）資料及安全衛生教育訓練紀錄<select name="new_worker"><option>未填</option><option>有</option><option>無</option><option>無新進勞工</option></select></label>
+          <label class="full">3. 檢查勞工個人防護具<select name="ppe"><option>未填</option><option>有</option><option>無</option></select></label>
+          <label class="full">（二）其他事項<textarea name="safety_other"></textarea></label>
+        </div>
+        <p class="hint">註3：施工前檢查事項由職業安全衛生管理人員於每日施工前辦理並製作施工前檢查紀錄表，工地主任督導及確認完成後填載。</p>
+      </section>
+    </div>
+
+    <!-- ===== 六～八 ===== -->
+    <div class="page" data-page="safety" data-sec="records" role="tabpanel">
+      <section class="panel">
+        <h2>六、施工取樣試驗紀錄</h2>
+        <textarea name="testing" placeholder="試驗項目、取樣位置、組數、取樣時間…"></textarea>
+      </section>
+      <section class="panel">
+        <h2>七、通知協力廠商辦理事項</h2>
+        <textarea name="subcontractor_notice"></textarea>
+      </section>
+      <section class="panel">
+        <h2>八、重要事項紀錄</h2>
+        <textarea name="important" id="important" style="min-height:120px"></textarea>
+        <button type="button" class="secondary small" id="tplBtn" style="margin-top:6px">插入註4範本</button>
+        <p class="hint">註4：（1）起造人及監造人指示；（2）工地遇緊急異常狀況之通報處理情形；（3）本日是否由專任工程人員督察按圖施工、解決施工技術問題等。</p>
+      </section>
+    </div>
+
+    <!-- ===== 附件與簽章 ===== -->
+    <div class="page" data-page="sign" data-sec="sign" role="tabpanel">
+      <section class="panel">
+        <h2>照片及附件</h2>
+        <input id="photos" type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" multiple>
+        <label class="inline" style="margin-top:8px"><input type="checkbox" id="compressChk">上傳前壓縮照片（長邊 2000px，節省行動數據）</label>
+        <div id="attList"></div>
+      </section>
+      <section class="panel">
+        <h2>簽章與確認</h2>
+        <div class="grid">
+          <label class="full">簽章人身分（註5）<select name="signer_role"><option>工地主任</option><option>營造業法第三十二條第二項所定之人員</option></select></label>
+          <label class="full">填報人姓名<input name="site_manager"></label>
+        </div>
+        <label class="inline" style="margin-top:8px"><input name="confirmed" type="checkbox">我已核對本日填報內容</label>
+        <p class="hint">本系統不代簽、不產生電子簽章。列印後由依法應簽章者本人簽章。</p>
+      </section>
+      <section class="panel">
+        <h2>填報檢查</h2>
+        <div id="checkList" class="hint"></div>
+      </section>
+    </div>
+
+    <!-- ===== 設定 ===== -->
+    <div class="page" data-page="settings" data-sec="settings" role="tabpanel">
+      <section class="panel">
+        <h2>備份與刪除</h2>
+        <div class="toolbar">
+          <button type="button" id="exportBtn" class="secondary small">匯出本筆 JSON</button>
+          <button type="button" id="exportAllBtn" class="secondary small">匯出全部 JSON</button>
+          <button type="button" id="importBtn" class="secondary small">匯入 JSON</button>
+          <input type="file" id="importFile" accept=".json,application/json" hidden>
+          <button type="button" id="deleteBtn" class="danger small">刪除本筆日誌</button>
+        </div>
+      </section>
+      <section class="panel">
+        <h2>雲端與儲存</h2>
+        <button type="button" id="cidBtn" class="secondary small">設定 Google OAuth 用戶端 ID</button>
+        <p class="hint" id="storageInfo"></p>
+        <p class="hint">日誌存於本機瀏覽器（IndexedDB），同步後存於您個人 Google 雲端硬碟「個人施工日誌／工程名稱／年／月」資料夾。本系統僅申請 drive.file 權限，只能存取本系統建立的檔案。</p>
+      </section>
+    </div>
+  </form>
+  <div id="pager" class="pager"><button type="button" id="prevPg" class="secondary">‹ 上一頁</button><span id="pgInfo"></span><button type="button" id="nextPg" class="secondary">下一頁 ›</button></div>
+</main>
+<footer>B14-4 個人版 V2.2.1 · 格式依 110 年版建築物施工日誌 · 開發原型，正式使用前請依主管建築機關現行表單確認</footer>
+
+<div class="actions">
+  <button type="button" id="saveBtn">儲存</button>
+  <button type="button" id="previewBtn" class="secondary">預覽／列印</button>
+  <button type="button" id="syncBtn2" class="secondary">同步</button>
+</div>
+<div id="banner"><span>有新版本可用。</span><button class="small" id="reloadBtn">立即更新</button></div>
+<div id="overlay"><div id="overlayMsg">處理中…</div></div>
+<div id="previewBar">
+  <button id="printBtn" class="small">列印／另存 PDF</button>
+  <button id="closePrevBtn" class="small secondary">關閉預覽</button>
+  <div class="w" id="warnList"></div>
+</div>
+<div id="printArea"></div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+'use strict';
+/* =========================================================
+ * B14-4 個人版 V2.2.1
+ * 公司部署：可於 PRESET_CLIENT_ID 預填公司 Google Cloud 專案之
+ * OAuth「網頁應用程式」用戶端 ID（勿放 Client Secret）。
+ * ========================================================= */
+const APP_VERSION = '2.2.1';
+const PRESET_CLIENT_ID = '';
+const SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const DB = 'b144_personal_v2', STORE = 'diaries', DBVER = 3;
+const LS_CID = 'b144_google_client_id', LS_COMPRESS = 'b144_compress', LS_TAB = 'b144_tab';
+const ROOT_FOLDER = '個人施工日誌';
+
+const $ = id => document.getElementById(id);
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Date.now().toString(36) + Math.random().toString(36).slice(2));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const WD = ['日','一','二','三','四','五','六'];
+
+/* ---------- 日期：一律使用裝置本地日期（修正 V2.0.1 之 UTC 偏差） ---------- */
+function localDate(d = new Date()) {
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+function parseYMD(s) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; }
+function weekday(s) { const d = parseYMD(s); return d ? WD[d.getDay()] : ''; }
+function roc(s) { const d = parseYMD(s); return d ? { y: d.getFullYear() - 1911, m: d.getMonth() + 1, d: d.getDate() } : null; }
+function rocText(s, blank = '　　年　　月　　日') { const r = roc(s); return r ? `${r.y} 年 ${r.m} 月 ${r.d} 日` : blank; }
+
+/* ---------- 數值 ---------- */
+function num(v) { if (v === null || v === undefined) return null; const s = String(v).replace(/,/g, '').trim(); if (s === '') return null; const n = Number(s); return isFinite(n) ? n : null; }
+function fmt(n) { return String(Math.round(n * 10000) / 10000); }
+
+/* ---------- 列表欄位規格（對應 110 年版 B14-4） ---------- */
+const SPEC = {
+  workRows:      { labels: ['施工項目','單位','契約數量','前日累計','本日完成數量','累計完成數量','備註'], wide: ['施工項目','備註'], numeric: ['契約數量','前日累計','本日完成數量','累計完成數量'], prev: '前日累計', today: '本日完成數量', cum: '累計完成數量', key: ['施工項目','單位','契約數量'], min: 1 },
+  specialRows:   { labels: ['代號','施工項目','單位','契約數量','前日累計','本日完成數量','累計完成數量','備註'], wide: ['施工項目','備註'], numeric: ['契約數量','前日累計','本日完成數量','累計完成數量'], prev: '前日累計', today: '本日完成數量', cum: '累計完成數量', key: ['代號','施工項目','單位','契約數量'], min: 0 },
+  materialRows:  { labels: ['材料名稱','單位','契約數量','前日累計','本日使用數量','累計使用數量','備註'], wide: ['材料名稱','備註'], numeric: ['契約數量','前日累計','本日使用數量','累計使用數量'], prev: '前日累計', today: '本日使用數量', cum: '累計使用數量', key: ['材料名稱','單位','契約數量'], min: 1 },
+  laborRows:     { labels: ['工別','前日累計','本日人數','累計人數'], wide: ['工別'], numeric: ['前日累計','本日人數','累計人數'], prev: '前日累計', today: '本日人數', cum: '累計人數', key: ['工別'], min: 1 },
+  equipmentRows: { labels: ['機具名稱','前日累計','本日使用數量','累計使用數量'], wide: ['機具名稱'], numeric: ['前日累計','本日使用數量','累計使用數量'], prev: '前日累計', today: '本日使用數量', cum: '累計使用數量', key: ['機具名稱'], min: 1 },
+  techRows:      { labels: ['種類 A–F','人數','姓名','證書字號','備註'], wide: ['備註'], numeric: ['人數'], select: { '種類 A–F': ['A','B','C','D','E','F'] }, key: [], min: 0 }
+};
+const ROW_IDS = Object.keys(SPEC);
+
+/* ---------- IndexedDB ---------- */
+let db;
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const r = indexedDB.open(DB, DBVER);
+    r.onupgradeneeded = () => { const d = r.result; if (!d.objectStoreNames.contains(STORE)) d.createObjectStore(STORE, { keyPath: 'id' }); };
+    r.onsuccess = () => { db = r.result; resolve(db); };
+    r.onerror = () => reject(r.error);
+  });
+}
+const os = (mode = 'readonly') => db.transaction(STORE, mode).objectStore(STORE);
+const req2p = r => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+const all = () => req2p(os().getAll());
+const get = id => req2p(os().get(id));
+const put = v => req2p(os('readwrite').put(v));
+const del = id => req2p(os('readwrite').delete(id));
+
+/* ---------- 狀態 ---------- */
+let cur = null;            // 目前編輯中的完整紀錄（含同步中繼資料、附件 Blob）
+let dirty = false, autosaveTimer = null, syncing = false;
+
+function status(msg, kind = '') { const s = $('status'); s.textContent = msg; s.className = 'status' + (kind ? ' ' + kind : ''); }
+function overlay(msg) { $('overlayMsg').textContent = msg || ''; $('overlay').classList.toggle('show', !!msg); }
+
+/* ---------- 列表 UI ---------- */
+function addRow(id, values = {}) {
+  const spec = SPEC[id], wrap = $(id), card = document.createElement('div');
+  card.className = 'rowcard';
+  spec.labels.forEach(l => {
+    const lab = document.createElement('label');
+    lab.textContent = l;
+    if (spec.wide.includes(l)) lab.className = 'wide';
+    let inp;
+    if (spec.select && spec.select[l]) {
+      inp = document.createElement('select');
+      spec.select[l].forEach(o => { const op = document.createElement('option'); op.textContent = o; inp.append(op); });
+      inp.value = values[l] || spec.select[l][0];
+    } else {
+      inp = document.createElement('input');
+      inp.value = values[l] ?? '';
+      if (spec.numeric.includes(l)) inp.inputMode = 'decimal';
+    }
+    inp.dataset.field = l;
+    lab.append(inp);
+    card.append(lab);
+  });
+  const foot = document.createElement('div');
+  foot.className = 'rowfoot';
+  const calc = document.createElement('span'); calc.className = 'calc';
+  if (spec.cum) calc.textContent = `${spec.cum} = 前日累計 ＋ ${spec.today}`;
+  const delBtn = document.createElement('button');
+  delBtn.type = 'button'; delBtn.className = 'danger small'; delBtn.textContent = '移除此列';
+  delBtn.onclick = () => { card.remove(); markDirty(); };
+  foot.append(calc, delBtn);
+  card.append(foot);
+  if (spec.cum) {
+    card.addEventListener('input', e => {
+      const f = e.target.dataset.field;
+      if (f !== spec.prev && f !== spec.today) return;
+      const p = num(card.querySelector(`[data-field="${spec.prev}"]`).value);
+      const t = num(card.querySelector(`[data-field="${spec.today}"]`).value);
+      if (p !== null || t !== null) card.querySelector(`[data-field="${spec.cum}"]`).value = fmt((p || 0) + (t || 0));
+    });
+  }
+  wrap.append(card);
+  return card;
+}
+function readRows(id) {
+  const spec = SPEC[id];
+  return [...$(id).querySelectorAll('.rowcard')].map(c => Object.fromEntries([...c.querySelectorAll('[data-field]')].map(i => [i.dataset.field, i.value.trim()])))
+    .filter(r => spec.labels.some(l => l !== '代號' && l !== '種類 A–F' && r[l]));
+}
+function restoreRows(id, rows) {
+  $(id).innerHTML = '';
+  const list = rows && rows.length ? rows : [];
+  list.forEach(r => addRow(id, r));
+  if (id === 'specialRows' && !list.length) { addRow(id, { '代號': 'A' }); addRow(id, { '代號': 'B' }); }
+  else for (let i = list.length; i < SPEC[id].min; i++) addRow(id, {});
+}
+
+/* ---------- 紀錄 ⇄ 表單 ---------- */
+const TOP = ['project', 'date', 'reportNo', 'contractor'];
+function blankRecord(extra = {}) {
+  return { id: uid(), schema: 'B14-4-110', appVersion: APP_VERSION, project: '', date: localDate(), reportNo: '', contractor: '', data: {}, rows: {}, attachments: [], removedDriveFiles: [], syncState: 'pending', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), ...extra };
+}
+function migrate(d) {
+  d.rows = d.rows || {}; d.data = d.data || {}; d.attachments = d.attachments || []; d.removedDriveFiles = d.removedDriveFiles || [];
+  if (!d.rows.specialRows) {
+    const sp = [];
+    if (d.data.special_a) sp.push({ '代號': 'A', '施工項目': d.data.special_a });
+    if (d.data.special_b) sp.push({ '代號': 'B', '施工項目': d.data.special_b });
+    d.rows.specialRows = sp;
+    delete d.data.special_a; delete d.data.special_b;
+  }
+  d.attachments.forEach(a => { if (a.dirty === undefined) a.dirty = !!(a.blob && !a.driveFileId); });
+  return d;
+}
+function formToRecord() {
+  const f = $('diary');
+  const fd = Object.fromEntries(new FormData(f).entries());
+  fd.confirmed = f.elements.confirmed.checked;
+  const rec = cur || blankRecord();
+  TOP.forEach(k => { rec[k] = (fd[k] || '').trim(); delete fd[k]; });
+  if (!rec.date) rec.date = localDate();
+  rec.data = fd;
+  rec.rows = Object.fromEntries(ROW_IDS.map(k => [k, readRows(k)]));
+  rec.schema = 'B14-4-110'; rec.appVersion = APP_VERSION;
+  return rec;
+}
+function loadRecord(d) {
+  cur = migrate(d);
+  const f = $('diary');
+  f.reset();
+  $('compressChk').checked = localStorage.getItem(LS_COMPRESS) !== '0';
+  TOP.forEach(k => { if (f.elements[k]) f.elements[k].value = d[k] || ''; });
+  Object.entries(d.data || {}).forEach(([k, v]) => {
+    const el = f.elements[k];
+    if (!el) return;
+    if (el instanceof RadioNodeList) { [...el].forEach(r => r.checked = r.value === v); }
+    else if (el.type === 'checkbox') el.checked = !!v;
+    else el.value = v;
+  });
+  ROW_IDS.forEach(k => restoreRows(k, d.rows?.[k]));
+  refreshDerived();
+  renderAttachments();
+  showConflict();
+  dirty = false;
+  renderList();
+  renderCurBar();
+  renderChecks();
+}
+function refreshDerived() {
+  const d = $('date').value;
+  $('weekday').value = d ? '星期' + weekday(d) : '';
+  const tech = $('diary').querySelector('[name=technician_required]:checked')?.value;
+  $('techBox').style.display = tech === '有' ? '' : 'none';
+  $('techNone').style.display = tech === '有' ? 'none' : '';
+  if (tech === '有' && !$('techRows').children.length) addRow('techRows', {});
+}
+function showConflict() { $('conflictBox').style.display = cur && cur.syncState === 'conflict' ? '' : 'none'; }
+
+/* ---------- 分頁 ---------- */
+const TABS = ['list', 'work', 'labor', 'safety', 'sign', 'settings'];
+/* 區段 → 分頁（區段代碼供驗證提醒定位使用） */
+const SEC2TAB = { list: 'list', basic: 'list', work: 'work', material: 'work', labor: 'labor', tech: 'labor', safety: 'safety', records: 'safety', sign: 'sign', settings: 'settings' };
+let curTab = 'list';
+const tabLabel = t => document.querySelector(`#tabs [data-tab="${SEC2TAB[t] || t}"]`)?.firstChild?.textContent?.trim() || t;
+function scrollToSec(sec) {
+  const el = document.querySelector(`.page[data-sec="${sec}"]`);
+  if (!el) return;
+  const y = el.getBoundingClientRect().top + window.scrollY - document.querySelector('header').offsetHeight - 8;
+  window.scrollTo({ top: Math.max(0, y), behavior: 'auto' });
+}
+function showTab(t, opts = {}) {
+  const sec = SEC2TAB[t] && SEC2TAB[t] !== t ? t : null;   // 例如 basic → 清單資料分頁並捲至表頭
+  t = SEC2TAB[t] || 'list';
+  curTab = t;
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.dataset.page === t));
+  document.querySelectorAll('#tabs [data-tab]').forEach(b => {
+    const on = b.dataset.tab === t;
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+    if (on) b.scrollIntoView({ inline: 'center', block: 'nearest', behavior: opts.instant ? 'auto' : 'smooth' });
+  });
+  const i = TABS.indexOf(t);
+  $('prevPg').disabled = i <= 0; $('nextPg').disabled = i >= TABS.length - 1;
+  $('prevPg').textContent = i > 0 ? '‹ ' + tabLabel(TABS[i - 1]) : '‹ 上一頁';
+  $('nextPg').textContent = i < TABS.length - 1 ? tabLabel(TABS[i + 1]) + ' ›' : '下一頁 ›';
+  $('pgInfo').textContent = `${i + 1}／${TABS.length}`;
+  try { localStorage.setItem(LS_TAB, t); history.replaceState(null, '', '#' + t); } catch {}
+  if (sec) requestAnimationFrame(() => scrollToSec(sec));
+  else if (!opts.keepScroll) window.scrollTo({ top: 0, behavior: 'auto' });
+}
+function stepTab(n) { const i = TABS.indexOf(curTab) + n; if (i >= 0 && i < TABS.length) showTab(TABS[i]); }
+function renderCurBar() {
+  const b = $('curBar');
+  if (!cur) { b.textContent = ''; return; }
+  const date = $('date').value || cur.date, proj = $('project').value || cur.project || '未命名工程';
+  const st = cur.syncState === 'synced' ? ['synced', '已同步'] : cur.syncState === 'conflict' ? ['conflict', '衝突'] : ['pending', '待同步'];
+  b.innerHTML = `📄 ${esc(date)}（${weekday(date)}）｜${esc(proj)} <span class="tag ${st[0]}">${st[1]}</span>${dirty ? ' <span class="unsaved">● 編輯中</span>' : ''}`;
+}
+function renderChecks() {
+  if (!cur) return;
+  const w = validate(cur);
+  const byTab = {};
+  w.forEach(x => { const t = SEC2TAB[x.tab]; byTab[t] = (byTab[t] || 0) + 1; });
+  document.querySelectorAll('#tabs [data-tab]').forEach(b => {
+    b.querySelector('.dot')?.remove();
+    if (byTab[b.dataset.tab]) { const d = document.createElement('span'); d.className = 'dot'; d.title = `${byTab[b.dataset.tab]} 項待確認`; b.append(d); }
+  });
+  const box = $('checkList');
+  if (!w.length) { box.innerHTML = '✓ 欄位檢查無缺漏，可預覽列印或同步。'; return; }
+  box.innerHTML = `尚有 ${w.length} 項待確認（點選可跳至該頁）：<ul style="padding-left:18px;margin:6px 0">` + w.map(x => `<li><a data-go="${x.tab}">［${esc(tabLabel(x.tab))}］${esc(x.msg)}</a></li>`).join('') + '</ul>';
+}
+function bindSwipe() {
+  let x0 = null, y0 = null, t0 = 0;
+  const main = document.querySelector('main');
+  main.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1 || e.target.closest('input,textarea,select,.entries,#tabs')) { x0 = null; return; }
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now();
+  }, { passive: true });
+  main.addEventListener('touchend', e => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    x0 = null;
+    if (Math.abs(dx) > 80 && Math.abs(dy) < 50 && Date.now() - t0 < 600) stepTab(dx < 0 ? 1 : -1);
+  }, { passive: true });
+}
+
+/* ---------- 儲存 ---------- */
+async function save(opts = {}) {
+  if (syncing) return cur;
+  clearTimeout(autosaveTimer);
+  const rec = formToRecord();
+  rec.updatedAt = new Date().toISOString();
+  rec.syncState = rec.syncState === 'conflict' ? 'conflict' : 'pending';
+  await put(rec);
+  cur = rec; dirty = false;
+  await renderList();
+  renderCurBar();
+  renderChecks();
+  if (!opts.silent) {
+    const dup = (await all()).find(x => x.id !== rec.id && x.project === rec.project && x.date === rec.date);
+    status(`已儲存於本機（${new Date().toLocaleTimeString('zh-TW', { hour12: false })}）。` + (dup ? '⚠ 同一工程同一天已有另一筆日誌，請確認是否重複。' : (navigator.onLine ? '可按「同步」上傳雲端。' : '目前離線，恢復網路後再同步。')), dup ? 'warn' : 'ok');
+  }
+  return rec;
+}
+function markDirty() {
+  if (!dirty) { dirty = true; renderCurBar(); }
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(async () => {
+    if (syncing) { markDirty(); return; }
+    await save({ silent: true });
+    status(`已自動儲存（${new Date().toLocaleTimeString('zh-TW', { hour12: false })}）。`, 'ok');
+  }, 1500);
+}
+
+/* ---------- 清單 ---------- */
+async function renderList() {
+  const ds = (await all()).sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+  const pf = $('projFilter'), keep = pf.value;
+  const projects = [...new Set(ds.map(d => d.project || '未命名工程'))].sort();
+  pf.innerHTML = '<option value="">全部工程</option>' + projects.map(p => `<option>${esc(p)}</option>`).join('');
+  pf.value = projects.includes(keep) ? keep : '';
+  const kw = $('kwFilter').value.trim();
+  const list = ds.filter(d => (!pf.value || (d.project || '未命名工程') === pf.value) && (!kw || [d.date, d.reportNo, d.project].join(' ').includes(kw)));
+  $('listCount').textContent = `（${list.length}／${ds.length} 筆）`;
+  const box = $('entries'); box.innerHTML = '';
+  if (!list.length) { box.innerHTML = '<span class="hint">尚無日誌。</span>'; return; }
+  list.forEach(d => {
+    const el = document.createElement('div'); el.className = 'entry' + (cur && cur.id === d.id ? ' current' : '');
+    const b = document.createElement('button'); b.type = 'button';
+    const st = d.syncState === 'synced' ? ['synced', '已同步'] : d.syncState === 'conflict' ? ['conflict', '衝突'] : ['pending', '待同步'];
+    b.innerHTML = `${esc(d.date)}（${weekday(d.date)}）｜${esc(d.project || '未命名工程')}${d.reportNo ? '｜' + esc(d.reportNo) : ''}<span class="tag ${st[0]}">${st[1]}</span>`;
+    b.onclick = async () => { if (dirty) await save({ silent: true }); loadRecord(await get(d.id)); status(`已開啟 ${d.date} 日誌。`); showTab('basic'); };
+    el.append(b); box.append(el);
+  });
+}
+
+/* ---------- 帶入前一日資料（累計數量承接） ---------- */
+async function findPrevious(project, date) {
+  return (await all()).filter(x => x.project === project && x.date < date && (!cur || x.id !== cur.id)).sort((a, b) => b.date.localeCompare(a.date))[0] || null;
+}
+function carryRows(prev) {
+  const out = {};
+  ROW_IDS.forEach(k => {
+    const spec = SPEC[k];
+    if (k === 'techRows') return;
+    out[k] = (prev.rows?.[k] || []).map(r => {
+      const n = {};
+      spec.key.forEach(f => n[f] = r[f] || '');
+      if (spec.cum) {
+        const c = num(r[spec.cum]);
+        const p = c !== null ? c : (num(r[spec.prev]) || 0) + (num(r[spec.today]) || 0);
+        n[spec.prev] = fmt(p); n[spec.today] = ''; n[spec.cum] = fmt(p);
+      }
+      return n;
+    });
+  });
+  return out;
+}
+async function carryForward(silentIfNone = false) {
+  const project = $('project').value.trim(), date = $('date').value;
+  if (!project) { status('請先填寫工程名稱。', 'warn'); return false; }
+  const prev = await findPrevious(project, date);
+  if (!prev) { if (!silentIfNone) status(`找不到「${project}」在 ${date} 之前的日誌。`, 'warn'); return false; }
+  const hasContent = ROW_IDS.some(k => readRows(k).length);
+  if (hasContent && !confirm(`將以 ${prev.date} 日誌的項目及累計數量取代目前一～三項內容，是否繼續？`)) return false;
+  const rows = carryRows(prev);
+  Object.entries(rows).forEach(([k, v]) => restoreRows(k, v));
+  const f = $('diary');
+  ['contractor'].forEach(k => { if (!f.elements[k].value) f.elements[k].value = prev[k] || ''; });
+  ['photo_no', 'start_date', 'completion_date', 'tech_project', 'signer_role', 'site_manager'].forEach(k => { if (f.elements[k] && !f.elements[k].value && prev.data?.[k]) f.elements[k].value = prev.data[k]; });
+  f.elements.planned_progress.placeholder = prev.data?.planned_progress ? `前日：${prev.data.planned_progress}` : '';
+  f.elements.actual_progress.placeholder = prev.data?.actual_progress ? `前日：${prev.data.actual_progress}` : '';
+  markDirty();
+  status(`已帶入 ${prev.date} 之項目與累計數量；請填寫本日數量，累計將自動計算。`, 'ok');
+  return true;
+}
+
+async function newDiary() {
+  if (dirty) await save({ silent: true });
+  const base = cur ? { project: cur.project, contractor: cur.contractor } : {};
+  const keepProject = base.project && confirm(`沿用「${base.project}」並帶入前一日資料？\n（取消則建立空白日誌）`);
+  const rec = blankRecord(keepProject ? base : {});
+  if (keepProject && cur?.data) rec.data = { photo_no: cur.data.photo_no || '', start_date: cur.data.start_date || '', completion_date: cur.data.completion_date || '', signer_role: cur.data.signer_role || '工地主任', site_manager: cur.data.site_manager || '' };
+  loadRecord(rec);
+  if (keepProject) await carryForward(true);
+  await save({ silent: true });
+  status(`已建立 ${rec.date} 新日誌。`, 'ok');
+  showTab('basic');
+}
+
+/* ---------- 附件 ---------- */
+let objectUrls = [];
+function renderAttachments() {
+  objectUrls.forEach(u => URL.revokeObjectURL(u)); objectUrls = [];
+  const box = $('attList'); box.innerHTML = '';
+  (cur?.attachments || []).forEach(a => {
+    const row = document.createElement('div'); row.className = 'att';
+    let thumb;
+    if (a.blob && (a.type || '').startsWith('image/')) { thumb = document.createElement('img'); const u = URL.createObjectURL(a.blob); objectUrls.push(u); thumb.src = u; thumb.alt = ''; }
+    else { thumb = document.createElement('div'); thumb.className = 'ph'; thumb.textContent = (a.name.split('.').pop() || '檔').toUpperCase().slice(0, 4); }
+    const meta = document.createElement('div'); meta.className = 'meta';
+    const st = a.missing ? '⚠ 雲端下載異常' : a.dirty || !a.driveFileId ? '待上傳' : '已上傳';
+    meta.textContent = `${a.name}（${(a.size / 1024 / 1024).toFixed(2)} MB）｜${st}`;
+    const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'danger small'; rm.textContent = '移除';
+    rm.onclick = () => {
+      if (!confirm(`移除附件「${a.name}」？同步時雲端對應檔案將移至垃圾桶。`)) return;
+      cur.attachments = cur.attachments.filter(x => x.id !== a.id);
+      if (a.driveFileId) cur.removedDriveFiles.push(a.driveFileId);
+      renderAttachments(); markDirty();
+    };
+    row.append(thumb, meta, rm); box.append(row);
+  });
+  if (!(cur?.attachments || []).length) box.innerHTML = '<p class="hint">尚無附件。選取的附件先保存在本機，同步時上傳至雲端。</p>';
+}
+async function maybeCompress(file) {
+  if (!$('compressChk').checked || !(file.type || '').startsWith('image/') || file.type === 'image/gif') return file;
+  try {
+    const bmp = await createImageBitmap(file);
+    const max = 2000, sc = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    if (sc === 1 && file.size < 1.5e6) return file;
+    const c = document.createElement('canvas'); c.width = Math.round(bmp.width * sc); c.height = Math.round(bmp.height * sc);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
+    if (!blob || blob.size >= file.size) return file;
+    return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+  } catch { return file; }
+}
+
+/* ---------- 驗證 ---------- */
+function validate(rec) {
+  const w = [], d = rec.data || {};
+  const add = (t, m) => w.push({ tab: t, msg: m });
+  if (!rec.project) add('basic', '工程名稱未填。');
+  if (!rec.contractor) add('basic', '承造人未填。');
+  if (!rec.date) add('basic', '填表日期未填。');
+  else if (rec.date > localDate()) add('basic', '填表日期晚於今天。');
+  if (!d.weather_am || !d.weather_pm) add('basic', '本日天氣（上午／下午）未填完整。');
+  ['planned_progress', 'actual_progress'].forEach((k, i) => { const v = num(d[k]); if (d[k] && (v === null || v < 0 || v > 100)) add('basic', `${i ? '實際' : '預定'}進度須為 0～100 之數值。`); });
+  [['safety_education', '五(一)1 勤前教育'], ['new_worker', '五(一)2 新進勞工'], ['ppe', '五(一)3 個人防護具']].forEach(([k, n]) => { if (!d[k] || d[k] === '未填') add('safety', `${n} 尚未勾選。`); });
+  if (d.technician_required === '有') {
+    if (!d.tech_project) add('tech', '第四項勾選「有」：技術士簽章表之專業工程項目未填。');
+    if (!(rec.rows.techRows || []).some(r => r['姓名'])) add('tech', '第四項勾選「有」：技術士簽章表尚無技術士資料。');
+  }
+  const names = { workRows: '一', specialRows: '一(特定)', materialRows: '二', laborRows: '三(人員)', equipmentRows: '三(機具)' };
+  Object.entries(names).forEach(([k, sec]) => {
+    const spec = SPEC[k], tb = { workRows: 'work', specialRows: 'work', materialRows: 'material', laborRows: 'labor', equipmentRows: 'labor' }[k];
+    (rec.rows[k] || []).forEach(r => {
+      const p = num(r[spec.prev]), t = num(r[spec.today]), c = num(r[spec.cum]);
+      const nm = r[spec.key[k === 'specialRows' ? 1 : 0]] || '(未命名)';
+      ['契約數量', spec.prev, spec.today, spec.cum].forEach(f => { if (r[f] && num(r[f]) === null) add(tb, `${sec}「${nm}」${f} 非數值。`); });
+      if (t !== null && c !== null && c < t) add(tb, `${sec}「${nm}」累計小於本日數量。`);
+      if (p !== null && t !== null && c !== null && Math.abs(p + t - c) > 1e-6) add(tb, `${sec}「${nm}」累計 ≠ 前日累計＋本日（${fmt(p)}＋${fmt(t)}≠${fmt(c)}）。`);
+    });
+  });
+  if (!d.site_manager) add('sign', '填報人姓名未填。');
+  if (!d.confirmed) add('sign', '尚未勾選「我已核對本日填報內容」。');
+  return w;
+}
+
+/* ---------- 列印（110 年版 B14-4 版面） ---------- */
+function ck(v, opt) { return (v === opt ? '■' : '□') + opt; }
+function pad(rows, n) { const r = rows.slice(); while (r.length < n) r.push({}); return r; }
+function buildPrint(rec) {
+  const d = rec.data || {}, R = rec.rows || {}, e = esc;
+  const dt = roc(rec.date);
+  const work = pad(R.workRows || [], 2), mats = pad(R.materialRows || [], 2);
+  const specials = R.specialRows || [];
+  const spA = specials.filter(r => (r['代號'] || '').toUpperCase().startsWith('A'));
+  const spB = specials.filter(r => (r['代號'] || '').toUpperCase().startsWith('B'));
+  const spOther = specials.filter(r => !spA.includes(r) && !spB.includes(r));
+  const spList = [...(spA.length ? spA : [{ '代號': 'A' }]), ...(spB.length ? spB : [{ '代號': 'B' }]), ...spOther];
+  const lab = R.laborRows || [], eq = R.equipmentRows || [];
+  const n3 = Math.max(2, lab.length, eq.length);
+  const cols6 = '<colgroup><col style="width:30%"><col style="width:8%"><col style="width:13%"><col style="width:14%"><col style="width:14%"><col style="width:21%"></colgroup>';
+  const row6 = (r, a, b, c, dd, ee, f) => `<tr><td>${e(r[a])}</td><td class="c">${e(r[b])}</td><td class="r">${e(r[c])}</td><td class="r">${e(r[dd])}</td><td class="r">${e(r[ee])}</td><td>${e(r[f])}</td></tr>`;
+  let h = `<div class="sheet">
+  <div class="ttl"><b>建築物施工日誌</b><span>B14-4</span></div>
+  <div class="hd">表報編號：${e(rec.reportNo)}</div>
+  <div class="hd">本日天氣：上午：${e(d.weather_am) || '　　　'}　下午：${e(d.weather_pm) || '　　　'}　　　填表日期：${dt ? `${dt.y} 年 ${dt.m} 月 ${dt.d} 日（星期${weekday(rec.date)}）` : '　　年　　月　　日（星期　）'}</div>
+  <table><colgroup><col style="width:20%"><col style="width:32%"><col style="width:18%"><col style="width:30%"></colgroup>
+    <tr><th>工程名稱</th><td>${e(rec.project)}</td><th>承造人</th><td>${e(rec.contractor)}</td></tr>
+    <tr><th>建（雜）照號碼</th><td colspan="3" class="c">${e(d.photo_no) || '　　　　字第　　　　　號'}</td></tr>
+    <tr><th>開工日期</th><td class="c">${rocText(d.start_date)}</td><th>核定竣工日期</th><td class="c">${rocText(d.completion_date)}</td></tr>
+    <tr><th>預定進度(%)</th><td class="c">${e(d.planned_progress)}</td><th>實際進度(%)</th><td class="c">${e(d.actual_progress)}</td></tr>
+  </table>
+  <table class="sec">${cols6}
+    <tr><td colspan="6" class="stitle">一、依施工計畫書執行按圖施工概況（含約定之重要施工項目及完成數量等）：</td></tr>
+    <tr><th>施工項目</th><th>單位</th><th>契約數量</th><th>本日完成數量</th><th>累計完成數量</th><th>備註</th></tr>
+    ${work.map(r => row6(r, '施工項目', '單位', '契約數量', '本日完成數量', '累計完成數量', '備註')).join('')}
+    <tr><td colspan="6" style="font-size:9pt">營造業專業工程特定施工項目</td></tr>
+    ${spList.map(r => `<tr><td>${e((r['代號'] || '').replace(/\.?$/, '.'))}${e(r['施工項目'] ? ' ' + r['施工項目'] : '')}</td><td class="c">${e(r['單位'])}</td><td class="r">${e(r['契約數量'])}</td><td class="r">${e(r['本日完成數量'])}</td><td class="r">${e(r['累計完成數量'])}</td><td>${e(r['備註'])}</td></tr>`).join('')}
+  </table>
+  <table class="sec">${cols6}
+    <tr><td colspan="6" class="stitle">二、工地材料管理概況（含約定之重要材料使用狀況及數量等）：</td></tr>
+    <tr><th>材料名稱</th><th>單位</th><th>契約數量</th><th>本日使用數量</th><th>累計使用數量</th><th>備註</th></tr>
+    ${mats.map(r => row6(r, '材料名稱', '單位', '契約數量', '本日使用數量', '累計使用數量', '備註')).join('')}
+  </table>
+  <table class="sec"><colgroup><col style="width:18%"><col style="width:13%"><col style="width:13%"><col style="width:26%"><col style="width:14%"><col style="width:16%"></colgroup>
+    <tr><td colspan="6" class="stitle">三、工地人員及機具管理（含約定之出工人數及機具使用情形及數量）：</td></tr>
+    <tr><th>工別</th><th>本日人數</th><th>累計人數</th><th>機具名稱</th><th>本日使用數量</th><th>累計使用數量</th></tr>
+    ${Array.from({ length: n3 }, (_, i) => { const a = lab[i] || {}, b = eq[i] || {}; return `<tr><td>${e(a['工別'])}</td><td class="r">${e(a['本日人數'])}</td><td class="r">${e(a['累計人數'])}</td><td>${e(b['機具名稱'])}</td><td class="r">${e(b['本日使用數量'])}</td><td class="r">${e(b['累計使用數量'])}</td></tr>`; }).join('')}
+  </table>
+  <div class="box" style="min-height:0">四、本日施工項目是否有須依「營造業專業工程特定施工項目應置之技術士種類、比率或人數標準表」規定應設置技術士之專業工程：${ck(d.technician_required, '有')}${ck(d.technician_required || '無', '無')}<span style="font-size:8.5pt">（此項如勾選"有"，則應填寫後附「建築物施工日誌之技術士簽章表」）</span></div>
+  <div class="box" style="min-height:0">五、工地職業安全衛生事項之督導、公共環境與安全之維護及其他工地行政事務(註3)：
+（一）施工前檢查事項：
+　1.實施勤前教育(含工地預防災變及危害告知)：${ck(d.safety_education, '有')} ${ck(d.safety_education, '無')}
+　2.確認新進勞工是否提報勞工保險(或其他商業保險)資料及安全衛生教育訓練紀錄：${ck(d.new_worker, '有')} ${ck(d.new_worker, '無')} ${ck(d.new_worker, '無新進勞工')}
+　3.檢查勞工個人防護具：${ck(d.ppe, '有')} ${ck(d.ppe, '無')}
+（二）其他事項：${e(d.safety_other)}</div>
+  <div class="box">六、施工取樣試驗紀錄：
+${e(d.testing)}</div>
+  <div class="box">七、通知協力廠商辦理事項：
+${e(d.subcontractor_notice)}</div>
+  <div class="box tall">八、重要事項紀錄(註4)：
+${e(d.important)}</div>
+  <div class="box" style="min-height:16mm">簽章：【${e(d.signer_role || '工地主任')}】(註5)：<span style="font-size:8.5pt;float:right">（填報人：${e(d.site_manager)}）</span></div>
+  <div class="notes">
+    <p>註：1.依營造業法第三十二條第一項第二款規定，工地主任應按日填報施工日誌；本表檢送地方主管建築機關備查。</p>
+    <p>　　2.本施工日誌格式僅供參考，原則應包含上開欄位，各主管建築機關得依工程性質及實際需要增訂之。</p>
+    <p>　　3.施工前檢查事項所列工作應由依職業安全衛生管理辦法第三條規定所置職業安全衛生管理人員於每日施工前辦理並製作工地職業安全衛生施工前檢查紀錄表，工地主任負責督導及確認該事項完成後於施工日誌填載。</p>
+    <p>　　4.重要事項紀錄包含：（1）起造人及監造人指示。（2）工地遇緊急異常狀況之通報處理情形。（3）本日是否由專任工程人員督察按圖施工、解決施工技術問題等。</p>
+    <p>　　5.本工程依營造業法第三十條第一項規定須置工地主任者，由工地主任簽章；免置工地主任者，則由營造業法第三十二條第二項所定之人員簽章。</p>
+  </div>
+</div>`;
+  if (d.technician_required === '有') {
+    const techs = R.techRows || [];
+    let body = '';
+    ['A', 'B', 'C', 'D', 'E', 'F'].forEach(t => {
+      const list = pad(techs.filter(r => r['種類 A–F'] === t), 3);
+      list.forEach((r, i) => {
+        body += `<tr>${i === 0 ? `<td rowspan="${list.length}" class="c">${t}</td>` : ''}<td class="c">${e(r['人數'])}</td><td>${e(r['姓名'])}</td><td>${e(r['證書字號'])}</td><td class="sig"></td><td>${e(r['備註'])}</td></tr>`;
+      });
+    });
+    h += `<div class="sheet">
+  <div class="hd" style="font-size:12pt;margin-bottom:4px">建築物施工日誌之技術士簽章表：</div>
+  <div class="hd">（${e(rec.project)}｜${rocText(rec.date)}）</div>
+  <table><colgroup><col style="width:11%"><col style="width:9%"><col style="width:17%"><col style="width:25%"><col style="width:22%"><col style="width:16%"></colgroup>
+    <tr><td colspan="4">專業工程項目：${e(d.tech_project)}</td><td colspan="2">應置技術士人數：${e(d.tech_required_count)}</td></tr>
+    <tr><th>技術士<br>種類</th><th>人數</th><th>技術士姓名</th><th>技術士證書字號</th><th>技術士簽名或蓋章</th><th>備註</th></tr>
+    ${body}
+  </table>
+</div>`;
+  }
+  return h;
+}
+async function openPreview() {
+  const rec = await save({ silent: true });
+  $('printArea').innerHTML = buildPrint(rec);
+  const w = validate(rec);
+  $('warnList').innerHTML = w.length ? '⚠ 檢查提醒（不影響列印）：<br>' + w.map(x => esc(x.msg)).join('<br>') : '✓ 欄位檢查無缺漏。';
+  document.body.classList.add('previewing');
+  requestAnimationFrame(() => document.documentElement.style.setProperty('--pbh', ($('previewBar').offsetHeight + 12) + 'px'));
+}
+function closePreview() { document.body.classList.remove('previewing'); }
+
+/* =========================================================
+ * Google Drive（drive.file；Token 僅存記憶體）
+ * ========================================================= */
+let token = null, tokenExp = 0, tokenClient = null, pendingAction = null;
+const clientId = () => PRESET_CLIENT_ID || localStorage.getItem(LS_CID) || '';
+function updateDrivePill() {
+  const p = $('drivePill');
+  if (token && Date.now() < tokenExp) { p.textContent = '雲端：已授權至 ' + new Date(tokenExp).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false }); p.className = 'pill ok'; }
+  else { p.textContent = clientId() ? '雲端：需授權' : '雲端：未設定'; p.className = 'pill'; }
+}
+function initTokenClient() {
+  if (tokenClient) return true;
+  if (!window.google?.accounts?.oauth2 || !clientId()) return false;
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: clientId(), scope: SCOPE,
+    callback: r => {
+      if (r.error) { status('Google 授權失敗：' + r.error, 'err'); pendingAction = null; return; }
+      token = r.access_token; tokenExp = Date.now() + (Number(r.expires_in) || 3600) * 1000; updateDrivePill();
+      const fn = pendingAction; pendingAction = null; if (fn) fn();
+    },
+    error_callback: err => { status('授權視窗被關閉或遭瀏覽器封鎖彈出視窗（' + (err?.type || '未知') + '）。', 'err'); pendingAction = null; }
+  });
+  return true;
+}
+/* 必須於使用者點擊事件中同步呼叫，才能開啟授權視窗 */
+function withDrive(fn) {
+  if (!navigator.onLine) { status('目前離線；資料已保存在本機，恢復網路後再操作雲端。', 'warn'); return; }
+  if (token && Date.now() < tokenExp - 60000) { fn(); return; }
+  if (!clientId()) { if (!askClientId()) return; }
+  if (!initTokenClient()) { status('Google 登入元件尚未載入，請確認網路後重新整理頁面。', 'err'); return; }
+  pendingAction = fn;
+  tokenClient.requestAccessToken({ prompt: '' });
+}
+function askClientId() {
+  const v = prompt('請貼上 Google Cloud OAuth 2.0「網頁應用程式」用戶端 ID（以 .apps.googleusercontent.com 結尾）：', localStorage.getItem(LS_CID) || '');
+  if (v === null) return false;
+  const t = v.trim();
+  if (t && !/\.apps\.googleusercontent\.com$/.test(t)) { alert('格式不正確：用戶端 ID 應以 .apps.googleusercontent.com 結尾。'); return false; }
+  if (t) localStorage.setItem(LS_CID, t); else localStorage.removeItem(LS_CID);
+  tokenClient = null; token = null; updateDrivePill();
+  return !!t;
+}
+
+const DRIVE = 'https://www.googleapis.com/drive/v3/', UPLOAD = 'https://www.googleapis.com/upload/drive/v3/files';
+async function api(path, opts = {}) {
+  const r = await fetch(path.startsWith('http') ? path : DRIVE + path, { ...opts, headers: { Authorization: 'Bearer ' + token, ...(opts.headers || {}) } });
+  if (r.status === 401) { token = null; updateDrivePill(); throw new Error('Google 授權已過期，請再按一次操作以重新授權'); }
+  if (!r.ok) { const e = new Error(`Drive API ${r.status}: ${(await r.text()).slice(0, 200)}`); e.status = r.status; throw e; }
+  return r.status === 204 ? null : r.json();
+}
+async function apiBlob(fileId) {
+  const r = await fetch(`${DRIVE}files/${encodeURIComponent(fileId)}?alt=media`, { headers: { Authorization: 'Bearer ' + token } });
+  if (!r.ok) { const e = new Error(`下載失敗 ${r.status}`); e.status = r.status; throw e; }
+  return r.blob();
+}
+const META = 'id,name,modifiedTime,parents,trashed,appProperties';
+async function getMeta(id) { try { return await api(`files/${encodeURIComponent(id)}?fields=${META}`); } catch (e) { if (e.status === 404) return null; throw e; } }
+const qEsc = s => String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+let folderCache = new Map();
+async function folder(name, parent) {
+  const key = (parent || 'root') + '/' + name;
+  if (folderCache.has(key)) return folderCache.get(key);
+  const q = `name='${qEsc(name)}' and mimeType='application/vnd.google-apps.folder' and trashed=false and '${parent || 'root'}' in parents`;
+  const found = await api('files?q=' + encodeURIComponent(q) + '&fields=files(id,name)&pageSize=10');
+  let id = found.files?.[0]?.id;
+  if (!id) {
+    const made = await api('files?fields=id', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, mimeType: 'application/vnd.google-apps.folder', parents: [parent || 'root'], appProperties: { app: 'b144', kind: 'folder' } }) });
+    id = made.id;
+  }
+  folderCache.set(key, id);
+  return id;
+}
+async function targetFolder(d) {
+  const root = await folder(ROOT_FOLDER);
+  const p = await folder((d.project || '未命名工程').replace(/[\/\\]/g, '／'), root);
+  const y = await folder((d.date || '').slice(0, 4) || '未分類年份', p);
+  return folder(((d.date || '').slice(5, 7) || '00') + '月', y);
+}
+async function putFile({ name, mime, blob, fileId, parent, appProperties }) {
+  const meta = { name, mimeType: mime, appProperties, ...(fileId ? {} : { parents: [parent] }) };
+  const boundary = 'b144_' + uid().replace(/-/g, '');
+  const body = new Blob([`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${boundary}\r\nContent-Type: ${mime || 'application/octet-stream'}\r\n\r\n`, blob, `\r\n--${boundary}--`]);
+  const url = (fileId ? `${UPLOAD}/${encodeURIComponent(fileId)}` : UPLOAD) + `?uploadType=multipart&fields=${META}`;
+  return api(url, { method: fileId ? 'PATCH' : 'POST', headers: { 'Content-Type': `multipart/related; boundary=${boundary}` }, body });
+}
+async function ensureParent(meta, target) {
+  if (!meta || !meta.parents || meta.parents.includes(target)) return meta;
+  return api(`files/${encodeURIComponent(meta.id)}?addParents=${encodeURIComponent(target)}&removeParents=${encodeURIComponent(meta.parents.join(','))}&fields=${META}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+}
+async function trashFile(id) {
+  try { await api(`files/${encodeURIComponent(id)}?fields=id`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trashed: true }) }); }
+  catch (e) { if (e.status !== 404) throw e; }
+}
+async function findDiaryRemote(id) {
+  const q = `appProperties has { key='app' and value='b144' } and appProperties has { key='diaryId' and value='${qEsc(id)}' } and appProperties has { key='kind' and value='diary' } and trashed=false`;
+  const r = await api('files?q=' + encodeURIComponent(q) + `&fields=files(${META})&pageSize=10`);
+  return r.files?.[0] || null;
+}
+function stripForCloud(d) {
+  const { blob, ...rest } = d;
+  return { ...rest, attachments: (d.attachments || []).map(a => ({ id: a.id, name: a.name, type: a.type, size: a.size, driveFileId: a.driveFileId })), removedDriveFiles: undefined, syncState: undefined, conflictRemoteTime: undefined };
+}
+
+/* 衝突判斷一律比較 Google 伺服器時間（remote.modifiedTime vs. 上次同步記錄之 remoteModifiedTime），不再混用手機時鐘 */
+async function uploadDiary(d, force = false) {
+  const month = await targetFolder(d);
+  let remote = d.driveFileId ? await getMeta(d.driveFileId) : null;
+  if (remote && remote.trashed) remote = null;
+  if (!remote) remote = await findDiaryRemote(d.id);
+  if (remote && !force && remote.modifiedTime !== d.remoteModifiedTime) {
+    d.syncState = 'conflict'; d.driveFileId = remote.id; d.conflictRemoteTime = remote.modifiedTime;
+    await put(d); return 'conflict';
+  }
+  for (const fid of d.removedDriveFiles || []) await trashFile(fid);
+  d.removedDriveFiles = []; await put(d);
+  const moved = d.driveFolderId && d.driveFolderId !== month;
+  for (const a of d.attachments || []) {
+    const props = { app: 'b144', diaryId: d.id, attachmentId: a.id, kind: 'attachment' };
+    if (a.blob && (a.dirty || !a.driveFileId)) {
+      overlay(`上傳附件：${a.name}`);
+      let m = await putFile({ name: a.name, mime: a.type || 'application/octet-stream', blob: a.blob, fileId: a.driveFileId, parent: month, appProperties: props });
+      m = await ensureParent(m, month);
+      a.driveFileId = m.id; a.dirty = false; delete a.missing;
+      await put(d);                      // 每個附件完成即寫回，避免中斷後重複上傳
+    } else if (a.driveFileId && moved) {
+      const m = await getMeta(a.driveFileId);
+      if (m && !m.trashed) await ensureParent(m, month);
+    }
+  }
+  overlay('上傳日誌…');
+  if (remote) await ensureParent(remote, month);
+  const json = new Blob([JSON.stringify(stripForCloud(d), null, 2)], { type: 'application/json' });
+  const saved = await putFile({ name: `${d.date}_B14-4_${d.id.slice(0, 8)}.json`, mime: 'application/json', blob: json, fileId: remote?.id, parent: month, appProperties: { app: 'b144', diaryId: d.id, kind: 'diary', schema: 'B14-4-110' } });
+  Object.assign(d, { driveFileId: saved.id, remoteModifiedTime: saved.modifiedTime, driveFolderId: month, syncState: 'synced', syncedAt: new Date().toISOString() });
+  delete d.conflictRemoteTime;
+  await put(d);
+  return 'synced';
+}
+async function syncAll() {
+  if (dirty) await save({ silent: true });
+  syncing = true; folderCache = new Map();
+  let ok = 0, cf = 0;
+  try {
+    const list = (await all()).filter(d => d.syncState !== 'synced');
+    if (!list.length) { status('沒有待同步的日誌。', 'ok'); return; }
+    for (const [i, d0] of list.entries()) {
+      overlay(`同步中 ${i + 1}／${list.length}：${d0.date} ${d0.project || ''}`);
+      const r = await uploadDiary(migrate(d0));
+      r === 'conflict' ? cf++ : ok++;
+    }
+    status(`同步完成：${ok} 筆已同步` + (cf ? `，${cf} 筆版本衝突（未覆寫雲端，請開啟該筆處理）。` : '。'), cf ? 'warn' : 'ok');
+  } catch (e) {
+    status(`同步未完成（已完成 ${ok} 筆）：${e.message}。本機資料仍保留，可稍後重試。`, 'err');
+  } finally {
+    syncing = false; overlay('');
+    if (cur) loadRecord(await get(cur.id) || cur);
+    await renderList();
+  }
+}
+async function listRemote() {
+  const q = `appProperties has { key='app' and value='b144' } and appProperties has { key='kind' and value='diary' } and trashed=false`;
+  let pageToken = '', files = [];
+  do {
+    const r = await api('files?q=' + encodeURIComponent(q) + `&fields=nextPageToken,files(${META})&pageSize=100&orderBy=name desc` + (pageToken ? '&pageToken=' + encodeURIComponent(pageToken) : ''));
+    files.push(...(r.files || [])); pageToken = r.nextPageToken || '';
+  } while (pageToken);
+  return files;
+}
+async function showCloudList() {
+  try {
+    overlay('讀取雲端清單…');
+    const files = await listRemote();
+    const box = $('cloudEntries'); box.innerHTML = '';
+    $('cloudPanel').open = true;
+    if (!files.length) { box.innerHTML = '<span class="hint">雲端尚無本系統建立的日誌。</span>'; return; }
+    const locals = new Map((await all()).map(d => [d.id, d]));
+    files.forEach(f => {
+      const loc = locals.get(f.appProperties?.diaryId);
+      const el = document.createElement('div'); el.className = 'entry';
+      const b = document.createElement('button'); b.type = 'button';
+      b.innerHTML = `${esc(f.name)}<br><span class="kv">雲端更新：${esc(new Date(f.modifiedTime).toLocaleString('zh-TW', { hour12: false }))}${loc ? (loc.remoteModifiedTime === f.modifiedTime ? '｜本機已是此版' : '｜本機版本不同') : '｜本機無此筆'}</span>`;
+      b.onclick = () => withDrive(() => restoreRemote(f));
+      el.append(b); box.append(el);
+    });
+    status(`找到 ${files.length} 筆雲端日誌。`, 'ok');
+  } catch (e) { status('讀取雲端清單失敗：' + e.message, 'err'); }
+  finally { overlay(''); }
+}
+async function restoreRemote(f) {
+  try {
+    overlay('下載雲端日誌…');
+    const meta = f.modifiedTime ? f : await getMeta(f.id);
+    if (!meta) throw new Error('雲端檔案不存在');
+    const d = JSON.parse(await (await apiBlob(meta.id)).text());
+    if (!d || !d.id || !d.data) throw new Error('檔案格式不符');
+    const local = await get(d.id);
+    if (local && local.syncState !== 'synced' && !confirm(`本機此筆（${local.date}）有尚未同步的修改。\n確定以雲端版本取代本機版本？取消則保留本機資料。`)) return;
+    migrate(d);
+    for (const a of d.attachments) {
+      if (!a.driveFileId) continue;
+      overlay(`下載附件：${a.name}`);
+      try { a.blob = await apiBlob(a.driveFileId); a.dirty = false; delete a.missing; } catch { a.missing = true; }
+    }
+    Object.assign(d, { driveFileId: meta.id, remoteModifiedTime: meta.modifiedTime, driveFolderId: meta.parents?.[0], syncState: 'synced', syncedAt: new Date().toISOString(), removedDriveFiles: [] });
+    delete d.conflictRemoteTime;
+    await put(d); loadRecord(d); showTab('basic');
+    const miss = d.attachments.filter(a => a.missing).length;
+    status(`已還原 ${d.date} 日誌至本機` + (miss ? `；${miss} 個附件下載異常。` : '。'), miss ? 'warn' : 'ok');
+  } catch (e) { status('還原失敗：' + e.message, 'err'); }
+  finally { overlay(''); }
+}
+
+/* ---------- 刪除 ---------- */
+async function deleteCurrent() {
+  if (!cur) return;
+  const exists = await get(cur.id);
+  if (!exists) { status('此筆尚未儲存，無需刪除。'); return; }
+  if (!confirm(`確定刪除 ${cur.date}「${cur.project || '未命名工程'}」日誌？\n建議先匯出 JSON 備份。`)) return;
+  const target = cur;
+  const finish = async (msg) => { await del(target.id); cur = null; const ds = (await all()).sort((a, b) => (b.date || '').localeCompare(a.date || '')); loadRecord(ds[0] || blankRecord()); status(msg, 'ok'); showTab('list'); };
+  if (target.driveFileId && confirm('是否同時將雲端對應檔案（日誌與附件）移至 Google 雲端硬碟垃圾桶？\n（取消則僅刪除本機，雲端保留）')) {
+    withDrive(async () => {
+      try {
+        overlay('移除雲端檔案…');
+        for (const a of target.attachments || []) if (a.driveFileId) await trashFile(a.driveFileId);
+        for (const fid of target.removedDriveFiles || []) await trashFile(fid);
+        await trashFile(target.driveFileId);
+        await finish('已刪除本機日誌，雲端檔案已移至垃圾桶（30 天內可於雲端硬碟復原）。');
+      } catch (e) { status('雲端刪除失敗：' + e.message + '；本機資料未刪除。', 'err'); }
+      finally { overlay(''); }
+    });
+  } else await finish('已刪除本機日誌。' + (target.driveFileId ? '雲端檔案保留。' : ''));
+}
+
+/* ---------- 匯出／匯入 ---------- */
+function download(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
+async function exportOne() { const d = await save({ silent: true }); download(new Blob([JSON.stringify(stripForCloud(d), null, 2)], { type: 'application/json' }), `${d.date}_B14-4_${(d.project || '未命名').slice(0, 20)}.json`); status('已匯出本筆 JSON（附件僅含檔名與雲端 ID）。', 'ok'); }
+async function exportAll() { if (dirty) await save({ silent: true }); const ds = (await all()).map(stripForCloud); download(new Blob([JSON.stringify({ app: 'b144', version: APP_VERSION, exportedAt: new Date().toISOString(), diaries: ds }, null, 2)], { type: 'application/json' }), `B14-4_全部備份_${localDate()}.json`); status(`已匯出全部 ${ds.length} 筆 JSON。`, 'ok'); }
+async function importJSON(file) {
+  try {
+    const j = JSON.parse(await file.text());
+    const list = Array.isArray(j) ? j : j.diaries ? j.diaries : [j];
+    let n = 0, skip = 0;
+    for (const d of list) {
+      if (!d || !d.id || !d.data) { skip++; continue; }
+      const ex = await get(d.id);
+      if (ex && ex.updatedAt > (d.updatedAt || '') && !confirm(`${d.date} 日誌本機版本較新，仍以匯入檔取代？`)) { skip++; continue; }
+      migrate(d);
+      d.attachments.forEach(a => { delete a.blob; a.dirty = false; });
+      d.syncState = 'pending';
+      if (ex) { d.driveFileId = ex.driveFileId; d.remoteModifiedTime = ex.remoteModifiedTime; d.driveFolderId = ex.driveFolderId; }
+      await put(d); n++;
+    }
+    await renderList();
+    status(`匯入完成：${n} 筆` + (skip ? `，略過 ${skip} 筆。` : '。') + '附件實體不含於 JSON，如需請由雲端還原。', 'ok');
+  } catch (e) { status('匯入失敗：' + e.message, 'err'); }
+}
+
+/* ---------- 儲存空間持久化 ---------- */
+async function storageInfo() {
+  let txt = `版本 ${APP_VERSION}。`;
+  try {
+    if (navigator.storage?.persist) {
+      const p = (await navigator.storage.persisted()) || (await navigator.storage.persist());
+      txt += p ? '本機儲存：已設為持久保存（瀏覽器不會因空間不足自動清除）。' : '本機儲存：未獲持久保存授權，請定期同步並匯出備份；安裝為主畫面 App 可提高保存等級。';
+    }
+    if (navigator.storage?.estimate) { const e = await navigator.storage.estimate(); txt += ` 已使用約 ${(e.usage / 1048576).toFixed(1)} MB。`; }
+  } catch {}
+  txt += clientId() ? ` OAuth 用戶端 ID：${clientId().slice(0, 12)}…${PRESET_CLIENT_ID ? '（公司預設）' : ''}` : ' 尚未設定 OAuth 用戶端 ID。';
+  $('storageInfo').textContent = txt;
+}
+
+/* ---------- 網路狀態 ---------- */
+function setNet() { const n = $('net'); n.textContent = navigator.onLine ? '連線中' : '離線'; n.className = 'pill ' + (navigator.onLine ? 'ok' : 'off'); }
+
+/* ---------- 事件綁定 ---------- */
+function bind() {
+  window.addEventListener('online', setNet); window.addEventListener('offline', setNet);
+  const f = $('diary');
+  f.addEventListener('input', markDirty);
+  f.addEventListener('change', e => { if (e.target.name === 'technician_required' || e.target.name === 'date') refreshDerived(); markDirty(); });
+  document.querySelectorAll('[data-add]').forEach(b => b.onclick = () => { const k = b.dataset.add; const n = $(k).children.length; addRow(k, k === 'specialRows' ? { '代號': String.fromCharCode(65 + Math.min(n, 25)) } : {}).querySelector('input,select')?.focus(); markDirty(); });
+  $('saveBtn').onclick = () => save();
+  $('newBtn').onclick = newDiary;
+  document.querySelectorAll('.carryBtn').forEach(b => b.onclick = () => carryForward(false));
+  document.querySelectorAll('#tabs [data-tab]').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+  $('prevPg').onclick = () => stepTab(-1); $('nextPg').onclick = () => stepTab(1);
+  $('checkList').onclick = e => { const a = e.target.closest('[data-go]'); if (a) showTab(a.dataset.go); };
+  ['date', 'project'].forEach(id => $(id).addEventListener('input', renderCurBar));
+  bindSwipe();
+  $('previewBtn').onclick = openPreview;
+  $('printBtn').onclick = () => window.print();
+  $('closePrevBtn').onclick = closePreview;
+  const doSync = () => withDrive(syncAll);
+  $('syncBtn').onclick = doSync; $('syncBtn2').onclick = doSync;
+  $('cloudListBtn').onclick = () => withDrive(showCloudList);
+  $('forceUpBtn').onclick = () => {
+    if (!cur || cur.syncState !== 'conflict') return;
+    if (!confirm('將以本機版本覆寫雲端版本（雲端舊版可於 Google 雲端硬碟「版本紀錄」查看）。是否繼續？')) return;
+    withDrive(async () => {
+      const d = await save({ silent: true });
+      syncing = true; folderCache = new Map();
+      try { overlay('覆寫雲端…'); await uploadDiary(d, true); status('已以本機版本更新雲端日誌。', 'ok'); }
+      catch (e) { status('覆寫失敗：' + e.message, 'err'); }
+      finally { syncing = false; overlay(''); loadRecord(await get(cur.id)); }
+    });
+  };
+  $('takeCloudBtn').onclick = () => { if (!cur?.driveFileId) return; const id = cur.driveFileId; withDrive(async () => { const m = await getMeta(id); if (!m) { status('雲端檔案已不存在。', 'err'); return; } cur.syncState = 'synced'; await put(cur); await restoreRemote(m); }); };
+  $('tplBtn').onclick = () => { const t = $('important'); t.value = (t.value ? t.value.replace(/\s*$/, '\n') : '') + '（1）起造人及監造人指示：\n（2）工地緊急異常狀況通報處理情形：\n（3）專任工程人員督察按圖施工、解決施工技術問題：'; markDirty(); t.focus(); };
+  $('photos').onchange = async e => {
+    if (!cur) cur = formToRecord();
+    const files = [...e.target.files]; e.target.value = '';
+    for (const [i, file] of files.entries()) {
+      overlay(`處理附件 ${i + 1}／${files.length}…`);
+      const f2 = await maybeCompress(file);
+      cur.attachments.push({ id: uid(), name: f2.name, type: f2.type, size: f2.size, blob: f2, dirty: true, addedAt: new Date().toISOString() });
+    }
+    overlay(''); renderAttachments(); await save({ silent: true });
+    status(`已加入 ${files.length} 個附件（本機儲存，同步時上傳）。`, 'ok');
+  };
+  $('compressChk').checked = localStorage.getItem(LS_COMPRESS) !== '0';
+  $('compressChk').onchange = e => localStorage.setItem(LS_COMPRESS, e.target.checked ? '1' : '0');
+  $('exportBtn').onclick = exportOne; $('exportAllBtn').onclick = exportAll;
+  $('importBtn').onclick = () => $('importFile').click();
+  $('importFile').onchange = e => { const file = e.target.files[0]; e.target.value = ''; if (file) importJSON(file); };
+  $('cidBtn').onclick = () => { if (PRESET_CLIENT_ID) { alert('此部署已由管理者預設用戶端 ID，無需設定。'); return; } askClientId(); storageInfo(); };
+  $('deleteBtn').onclick = deleteCurrent;
+  $('projFilter').onchange = renderList; $('kwFilter').oninput = renderList;
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && dirty) save({ silent: true }); });
+  window.addEventListener('beforeunload', e => { if (dirty) { save({ silent: true }); e.preventDefault(); e.returnValue = ''; } });
+  window.addEventListener('afterprint', () => status('若已另存 PDF，可加入附件一併同步至雲端。'));
+}
+
+/* ---------- Service Worker 與更新提示 ---------- */
+function registerSW() {
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.register('./sw.js').then(reg => {
+    const notify = w => { $('banner').classList.add('show'); $('reloadBtn').onclick = () => w.postMessage('skipWaiting'); };
+    if (reg.waiting && navigator.serviceWorker.controller) notify(reg.waiting);
+    reg.addEventListener('updatefound', () => {
+      const w = reg.installing;
+      w && w.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) notify(w); });
+    });
+  }).catch(() => {});
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (!reloaded) { reloaded = true; location.reload(); } });
+}
+
+/* ---------- 啟動 ---------- */
+(async () => {
+  try {
+    bind(); setNet(); updateDrivePill();
+    await openDB();
+    const ds = (await all()).map(migrate).sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+    loadRecord(ds[0] || blankRecord());
+    const h = location.hash.slice(1), saved = localStorage.getItem(LS_TAB);
+    showTab(SEC2TAB[h] ? h : !ds.length ? 'basic' : TABS.includes(saved) ? saved : 'list', { instant: true });
+    status(ds.length ? `已載入 ${ds.length} 筆本機日誌，目前開啟 ${ds[0].date}。` : '尚無日誌，請填寫後按「儲存」。日誌會先保存在本機。');
+    storageInfo(); registerSW();
+    const iv = setInterval(() => { updateDrivePill(); }, 30000);
+    window.addEventListener('pagehide', () => clearInterval(iv));
+  } catch (e) { status('啟動失敗：' + e.message + '（若為私密瀏覽模式，可能不支援 IndexedDB）', 'err'); }
+})();
+</script>
+</body>
+</html>
